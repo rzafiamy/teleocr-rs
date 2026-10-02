@@ -1,0 +1,26 @@
+[package]
+name = "teleocr"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "TeleOCR document-parsing VLM (Qwen2.5-VL vision + Qwen3 text) in Rust/Candle, GGUF weights"
+keywords.workspace = true
+categories.workspace = true
+
+[features]
+default = []
+cuda = ["candle-core/cuda", "candle-nn/cuda"]
+metal = ["candle-core/metal", "candle-nn/metal"]
+
+[dependencies]
+candle-core.workspace = true
+candle-nn.workspace = true
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokenizers.workspace = true
+image.workspace = true
+tracing.workspace = true
+memmap2.workspace = true
+regex = "1"
