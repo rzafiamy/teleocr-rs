@@ -34,8 +34,13 @@ scripts/fetch-pdfium.sh target/release                     # PDF input (PDFium n
 
 ## Use
 
+Converted models: [rleo/TeleOCR-GGUF](https://huggingface.co/rleo/TeleOCR-GGUF)
+(`teleocr-q8v.gguf` for GPU, `teleocr-q8_0.gguf` for CPU).
+
 ```bash
-# Hugging Face checkpoint -> GGUF (text and vision linears in Q8_0)
+hf download rleo/TeleOCR-GGUF teleocr-q8v.gguf --local-dir .
+
+# or convert the Hugging Face checkpoint yourself (text and vision linears in Q8_0)
 teleocr convert ./TeleOCR -o teleocr-q8v.gguf --vision-dtype q8_0
 
 # Full document parsing: layout, then every block, to Markdown
