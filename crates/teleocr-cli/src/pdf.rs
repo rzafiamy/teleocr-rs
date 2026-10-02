@@ -5,9 +5,27 @@
 use anyhow::{Context, Result, anyhow, bail};
 use image::RgbImage;
 use pdfium_render::prelude::*;
+use std::sync::{Mutex, OnceLock};
 
 pub fn is_pdf(bytes: &[u8]) -> bool {
     bytes.starts_with(b"%PDF")
+}
+
+/// PDFium binds once per process (a second bind fails with
+/// `PdfiumLibraryBindingsAlreadyInitialized`), so the server shares one
+/// instance across requests; a failed bind is retried on the next call.
+fn pdfium() -> Result<&'static Pdfium> {
+    static PDFIUM: OnceLock<Pdfium> = OnceLock::new();
+    static INIT: Mutex<()> = Mutex::new(());
+    if let Some(p) = PDFIUM.get() {
+        return Ok(p);
+    }
+    let _guard = INIT.lock().unwrap_or_else(|e| e.into_inner());
+    if let Some(p) = PDFIUM.get() {
+        return Ok(p);
+    }
+    let p = bind()?;
+    Ok(PDFIUM.get_or_init(|| p))
 }
 
 fn bind() -> Result<Pdfium> {
@@ -34,7 +52,9 @@ fn bind() -> Result<Pdfium> {
     Ok(Pdfium::new(b))
 }
 
-/// Parses "1-3,5" (1-based, inclusive) into 0-based indices.
+/// Parses "1-3,5" (1-based, inclusive) into 0-based indices. Ranges past the
+/// last page are clipped ("1-8" on a 3-page PDF is pages 1-3); only a spec
+/// that selects no page at all is an error.
 pub fn parse_pages(spec: &str, n: usize) -> Result<Vec<usize>> {
     let mut out = Vec::new();
     for part in spec.split(',').map(str::trim).filter(|s| !s.is_empty()) {
@@ -45,17 +65,20 @@ pub fn parse_pages(spec: &str, n: usize) -> Result<Vec<usize>> {
                 (p, p)
             }
         };
-        if a == 0 || b < a || b > n {
-            bail!("page range '{part}' outside 1-{n}");
+        if a == 0 || b < a {
+            bail!("invalid page range '{part}'");
         }
-        out.extend(a - 1..b);
+        out.extend(a - 1..b.min(n));
+    }
+    if out.is_empty() {
+        bail!("page range '{spec}' outside 1-{n}");
     }
     Ok(out)
 }
 
 /// Renders the selected pages (all when `pages` is None) at `dpi`.
 pub fn render(bytes: &[u8], dpi: f32, pages: Option<&str>) -> Result<Vec<RgbImage>> {
-    let pdfium = bind()?;
+    let pdfium = pdfium()?;
     let doc = pdfium
         .load_pdf_from_byte_slice(bytes, None)
         .map_err(|e| anyhow!("reading PDF: {e}"))?;
@@ -84,4 +107,19 @@ pub fn render(bytes: &[u8], dpi: f32, pages: Option<&str>) -> Result<Vec<RgbImag
         out.push(RgbImage::from_raw(w, h, rgb).context("bitmap size")?);
     }
     Ok(out)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_pages;
+
+    #[test]
+    fn page_ranges() {
+        assert_eq!(parse_pages("1-3,5", 5).unwrap(), vec![0, 1, 2, 4]);
+        assert_eq!(parse_pages("1-8", 1).unwrap(), vec![0]);
+        assert_eq!(parse_pages("2-8,9", 3).unwrap(), vec![1, 2]);
+        assert!(parse_pages("5-8", 1).is_err());
+        assert!(parse_pages("0-2", 3).is_err());
+        assert!(parse_pages("3-1", 3).is_err());
+    }
 }
