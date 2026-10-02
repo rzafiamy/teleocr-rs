@@ -27,6 +27,10 @@ enum Embed {
     Quant(QMatMul),
 }
 
+/// Prompt positions per prefill step (bounds the attention scores to
+/// heads x 1024 x total positions).
+pub const PREFILL_CHUNK: usize = 1024;
+
 pub struct TextModel {
     embed: Embed,
     layers: Vec<Layer>,
@@ -141,8 +145,28 @@ impl TextModel {
     }
 
     /// Runs `xs` `[seq, hidden]` at positions `pos`; returns the logits of
-    /// the last position `[vocab]` (F32).
+    /// the last position `[vocab]` (F32). Long inputs are prefilled in
+    /// chunks of [`PREFILL_CHUNK`] positions: the full score matrix of a
+    /// 5.7k-token image prompt is 2.1 GB per layer in F32 (and copied by the
+    /// mask and the softmax), which ran a 24 GB GPU out of memory.
     pub fn forward(&self, xs: &Tensor, pos: &[Vec<u32>; 3], cache: &mut Cache) -> Result<Tensor> {
+        let (seq, _) = xs.dims2()?;
+        if seq <= PREFILL_CHUNK {
+            return self.forward_chunk(xs, pos, cache);
+        }
+        let mut s = 0;
+        loop {
+            let len = PREFILL_CHUNK.min(seq - s);
+            let part: [Vec<u32>; 3] = std::array::from_fn(|i| pos[i][s..s + len].to_vec());
+            let logits = self.forward_chunk(&xs.narrow(0, s, len)?, &part, cache)?;
+            s += len;
+            if s == seq {
+                return Ok(logits);
+            }
+        }
+    }
+
+    fn forward_chunk(&self, xs: &Tensor, pos: &[Vec<u32>; 3], cache: &mut Cache) -> Result<Tensor> {
         let (seq, _) = xs.dims2()?;
         let (cos, sin) = self.mrope(pos)?;
         let past = cache.kv[0].current_seq_len();
@@ -279,6 +303,7 @@ impl TextModel {
     }
 
     fn causal_mask(&self, seq: usize, past: usize) -> Result<Tensor> {
+        // Rows are prompt positions, columns cached + new positions.
         let total = past + seq;
         let m: Vec<f32> = (0..seq)
             .flat_map(|i| {

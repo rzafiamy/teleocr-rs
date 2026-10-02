@@ -8,8 +8,12 @@ use anyhow::Result;
 use candle_core::{D, DType, Device, Module, Tensor};
 use std::collections::BTreeMap;
 
-/// Query rows per chunk in full attention; bounds the score matrix.
+/// Query rows per chunk in full attention, at most; bounds the score matrix.
 const FULL_ATTN_CHUNK: usize = 1024;
+/// Score-matrix elements per full-attention chunk (heads x rows x keys):
+/// 64M = 256 MB in F32. A fixed 1024-row chunk grows with the key count —
+/// 1.5 GB per chunk on a 23k-patch crop, plus softmax copies.
+const FULL_ATTN_SCORES: usize = 64 << 20;
 
 struct Block {
     norm1: RmsNorm,
@@ -200,7 +204,8 @@ impl VisionTower {
                 let mut chunks = Vec::new();
                 let mut s = 0;
                 while s < n {
-                    let len = FULL_ATTN_CHUNK.min(n - s);
+                    let rows = (FULL_ATTN_SCORES / (heads * n)).clamp(64, FULL_ATTN_CHUNK);
+                    let len = rows.min(n - s);
                     let qc = q.narrow(1, s, len)?;
                     chunks.push(sdpa(&qc, &kt, &v, scale)?);
                     s += len;

@@ -122,7 +122,14 @@ pub struct Engine {
     pub tokenizer: Tokenizer,
     pre: PreprocessConfig,
     device: Device,
+    /// Upper bound on `rows x cache length` of one decoding batch (see
+    /// [`Engine::set_kv_budget`]).
+    kv_budget: usize,
+    max_page_pixels: u64,
 }
+
+/// Default [`Engine::set_kv_budget`]: 16k positions, 3.7 GB of F32 cache.
+pub const DEFAULT_KV_BUDGET: usize = 16_384;
 
 impl Engine {
     /// Loads a `.gguf` file or a Hugging Face directory.
@@ -164,7 +171,41 @@ impl Engine {
             tokenizer,
             pre,
             device: device.clone(),
+            kv_budget: DEFAULT_KV_BUDGET,
+            max_page_pixels: crate::pipeline::DEFAULT_MAX_PAGE_PIXELS,
         })
+    }
+
+    /// Bounds the KV cache of one decoding batch to `tokens` positions
+    /// (rows x longest prompt + generation headroom; 229 KB each in F32).
+    /// A batch is cut short when the next job would exceed it, so a few
+    /// large crops no longer multiply their prompt length by the batch size.
+    pub fn set_kv_budget(&mut self, tokens: usize) {
+        self.kv_budget = tokens.max(1);
+    }
+
+    /// Pages larger than this are downscaled before their blocks are
+    /// cropped (document parsing only).
+    pub fn set_max_page_pixels(&mut self, pixels: u64) {
+        self.max_page_pixels = pixels;
+    }
+
+    pub fn max_page_pixels(&self) -> u64 {
+        self.max_page_pixels
+    }
+
+    /// Cache positions a job needs: its prompt (image tokens after
+    /// `smart_resize` plus the text around them) and decoding headroom.
+    fn job_positions(&self, img: &RgbImage, opts: &GenerateOptions) -> usize {
+        let f = self.pre.patch_size * self.pre.merge_size;
+        let (h, w) = crate::image::smart_resize(
+            img.height() as usize,
+            img.width() as usize,
+            f,
+            self.pre.min_pixels,
+            self.pre.max_pixels,
+        );
+        h * w / (f * f) + 64 + (opts.max_new_tokens + 1).min(CACHE_HEADROOM)
     }
 
     /// Preprocessed patches and vision embeddings `[n_tokens, hidden]`.
@@ -342,11 +383,50 @@ impl Engine {
         jobs: &[(&RgbImage, &str, &GenerateOptions)],
         max_batch: usize,
     ) -> Result<Vec<Output>> {
-        let mut outputs = Vec::with_capacity(jobs.len());
-        for chunk in jobs.chunks(max_batch.max(1)) {
-            outputs.extend(self.decode_chunk(chunk)?);
+        // Similar sizes together (less left padding), then batches cut at
+        // `max_batch` rows or the KV budget, whichever comes first.
+        let sizes: Vec<usize> = jobs.iter().map(|j| self.job_positions(j.0, j.2)).collect();
+        let mut order: Vec<usize> = (0..jobs.len()).collect();
+        order.sort_by_key(|&i| sizes[i]);
+        let mut outputs: Vec<Option<Output>> = (0..jobs.len()).map(|_| None).collect();
+        let mut start = 0;
+        while start < order.len() {
+            let mut end = start + 1;
+            while end < order.len()
+                && end - start < max_batch.max(1)
+                && (end - start + 1) * sizes[order[end]] <= self.kv_budget
+            {
+                end += 1;
+            }
+            let idx = &order[start..end];
+            let chunk: Vec<_> = idx.iter().map(|&i| jobs[i]).collect();
+            let outs = match self.decode_chunk(&chunk) {
+                Ok(o) => o,
+                // Out of memory anyway (other processes on the GPU): free
+                // what the pool holds and go one job at a time.
+                Err(e) if chunk.len() > 1 && is_oom(&e) => {
+                    tracing::warn!(
+                        "batch of {} out of GPU memory, retrying one by one",
+                        chunk.len()
+                    );
+                    crate::release_cached_memory(&self.device)?;
+                    let mut v = Vec::with_capacity(chunk.len());
+                    for job in &chunk {
+                        v.extend(self.decode_chunk(std::slice::from_ref(job))?);
+                    }
+                    v
+                }
+                Err(e) => return Err(e),
+            };
+            for (&i, o) in idx.iter().zip(outs) {
+                outputs[i] = Some(o);
+            }
+            start = end;
         }
-        Ok(outputs)
+        Ok(outputs
+            .into_iter()
+            .map(|o| o.expect("every job decoded"))
+            .collect())
     }
 
     fn decode_chunk(&self, jobs: &[(&RgbImage, &str, &GenerateOptions)]) -> Result<Vec<Output>> {
@@ -445,6 +525,10 @@ impl Engine {
             .map_err(|e| anyhow!("detokenize: {e}"))
             .context("decode")
     }
+}
+
+fn is_oom(e: &anyhow::Error) -> bool {
+    format!("{e:?}").contains("OUT_OF_MEMORY")
 }
 
 struct Prefilled {

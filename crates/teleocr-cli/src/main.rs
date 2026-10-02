@@ -35,6 +35,14 @@ struct ModelArgs {
     /// tower (default 12845056 = the model's); lower = faster, fewer tokens.
     #[arg(long)]
     max_pixels: Option<usize>,
+    /// Document parsing: pages above this many pixels are downscaled before
+    /// their blocks are cropped (default 4500000, ~A4 at 215 DPI).
+    #[arg(long)]
+    max_page_pixels: Option<u64>,
+    /// KV cache positions one decoding batch may use (rows x prompt
+    /// length; default 16384 = 3.7 GB). Bounds GPU memory on large crops.
+    #[arg(long)]
+    kv_budget: Option<usize>,
 }
 
 #[derive(Subcommand)]
@@ -139,6 +147,12 @@ fn load(m: &ModelArgs) -> Result<Engine> {
     let dev = device(m.cpu)?;
     let t0 = std::time::Instant::now();
     let mut e = Engine::load(&m.model, &dev, &LoadOptions::default())?;
+    if let Some(p) = m.max_page_pixels {
+        e.set_max_page_pixels(p);
+    }
+    if let Some(t) = m.kv_budget {
+        e.set_kv_budget(t);
+    }
     if let Some(p) = m.max_pixels {
         e.set_max_pixels(p);
     }

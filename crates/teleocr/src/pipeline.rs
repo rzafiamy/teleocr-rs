@@ -14,8 +14,10 @@ use std::sync::LazyLock;
 pub const LAYOUT_SIZE: u32 = 1036;
 const MIN_IMAGE_EDGE: u32 = 28;
 const MAX_IMAGE_EDGE_RATIO: f32 = 50.0;
-/// Pages are downscaled above this many pixels before cropping.
-const MAX_PAGE_PIXELS: u64 = 8000 * 8000;
+/// Default page size before cropping: ~4.5 Mpx is an A4 page at ~215 DPI,
+/// plenty for OCR; a 12 Mpx phone photo used as is gives 3x the image
+/// tokens (and KV cache, and time) for no gain.
+pub const DEFAULT_MAX_PAGE_PIXELS: u64 = 4_500_000;
 
 pub const BLOCK_TYPES: &[&str] = &[
     "text",
@@ -465,8 +467,11 @@ impl Engine {
         for (pi, (page, blocks)) in pages.iter().zip(&all_blocks).enumerate() {
             let px = page.width() as u64 * page.height() as u64;
             let scaled;
-            let src = if px > MAX_PAGE_PIXELS {
-                let s = (MAX_PAGE_PIXELS as f64 / px as f64).sqrt();
+            let max_px = self
+                .max_page_pixels()
+                .max(LAYOUT_SIZE as u64 * LAYOUT_SIZE as u64);
+            let src = if px > max_px {
+                let s = (max_px as f64 / px as f64).sqrt();
                 let (w, h) = (
                     (page.width() as f64 * s).round() as usize,
                     (page.height() as f64 * s).round() as usize,

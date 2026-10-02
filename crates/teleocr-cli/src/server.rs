@@ -155,6 +155,7 @@ async fn ocr(
     let state = s.clone();
     let result = tokio::task::spawn_blocking(move || -> Result<Value> {
         let engine = state.engine.blocking_lock();
+        let _trim = TrimOnDrop(&engine);
         if task == "parse" && req.prompt.is_none() {
             let opts = ParseOptions {
                 mode: req.mode.unwrap_or(LayoutMode::Detection),
@@ -225,6 +226,7 @@ async fn parse_pdf(
     };
     let pages = tokio::task::spawn_blocking(move || -> Result<Vec<teleocr::Page>> {
         let engine = s.engine.blocking_lock();
+        let _trim = TrimOnDrop(&engine);
         engine.parse_pages(&images, &opts)
     })
     .await
@@ -392,6 +394,7 @@ async fn chat(State(s): State<Shared>, Json(req): Json<ChatRequest>) -> Result<R
     let (content, out) =
         tokio::task::spawn_blocking(move || -> Result<(String, teleocr::Output)> {
             let engine = state.engine.blocking_lock();
+            let _trim = TrimOnDrop(&engine);
             // A bare task name (or empty text) maps to the task prompt.
             let (prompt, kind) = if task.is_empty() {
                 (
@@ -439,4 +442,16 @@ async fn chat(State(s): State<Shared>, Json(req): Json<ChatRequest>) -> Result<R
         "timings": t,
     }))
     .into_response())
+}
+
+/// Gives the GPU memory a request used back to the driver when the request
+/// ends (success or error), so one large job does not keep it reserved.
+struct TrimOnDrop<'a>(&'a teleocr::Engine);
+
+impl Drop for TrimOnDrop<'_> {
+    fn drop(&mut self) {
+        if let Err(e) = teleocr::release_cached_memory(self.0.device()) {
+            tracing::warn!("releasing cached GPU memory: {e}");
+        }
+    }
 }

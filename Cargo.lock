@@ -2488,6 +2488,7 @@ dependencies = [
  "anyhow",
  "candle-core",
  "candle-nn",
+ "cudarc 0.19.10",
  "image",
  "memmap2",
  "regex",
