@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-03
+
 ### Fixed
 - **GPU memory on large inputs** (12 Mpx phone photos ran a 24 GB GPU out
   of memory): the text prefill runs in 1024-position chunks instead of
@@ -59,6 +61,7 @@ First release: TeleOCR in Rust/Candle with GGUF weights.
 - **HTTP server**: `POST /v1/ocr` (JSON or multipart, images and PDFs),
   `POST /v1/chat/completions`, `GET /health`, `GET /v1/models`.
 
-[Unreleased]: https://github.com/rzafiamy/teleocr-rs/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/rzafiamy/teleocr-rs/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/rzafiamy/teleocr-rs/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/rzafiamy/teleocr-rs/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/rzafiamy/teleocr-rs/releases/tag/v0.1.0

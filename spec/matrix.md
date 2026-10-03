@@ -29,4 +29,4 @@ described in [manual-tests.md](manual-tests.md). Model tests
 | REQ-SRV-003 | `/health`, `/v1/models`, errors | Server | `server.rs` | `tests/e2e.sh` | ✅ | 400 on bad input |
 | REQ-GPU-001 | CUDA speed and memory | GPU | `model.rs`, `vision.rs` | manual MT-02 | ✅ | [docs/performance.md](../docs/performance.md) |
 
-Updated: 2026-10-03 (unreleased, after v0.1.1).
+Updated: 2026-10-03 (v0.2.0).

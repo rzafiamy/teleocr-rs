@@ -2483,7 +2483,7 @@ dependencies = [
 
 [[package]]
 name = "teleocr"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "candle-core",
@@ -2500,7 +2500,7 @@ dependencies = [
 
 [[package]]
 name = "teleocr-cli"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "axum",
