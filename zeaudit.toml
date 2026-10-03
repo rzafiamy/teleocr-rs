@@ -1,0 +1,50 @@
+# Ze-Apps audit of teleocr-rs (zeaudit audit .)
+
+[identity]
+owner = "Rija Z"
+app_type = "Rust CLI + HTTP server (no graphical interface)"
+repo_url = "https://github.com/rzafiamy/teleocr-rs"
+
+[[waive]]
+id = "ARB-15"
+reason = "Not a Tauri app: teleocr-rs is a CLI and an HTTP server with no graphical interface"
+
+[[waive]]
+id = "ARB-16"
+reason = "Not a Tauri app: no tauri dependency is expected"
+
+[[waive]]
+id = "CRD-04"
+reason = "No Tauri library is used (stated in CREDITS.md)"
+
+[[waive]]
+id = "PRQ-05"
+reason = "No webview: Tauri system dependencies (webkit2gtk, appindicator, librsvg) are not needed"
+
+[[waive]]
+id = "PRQ-07"
+reason = "No Tauri CLI: the binary builds with cargo alone (build.sh)"
+
+[[waive]]
+id = "INS-01"
+reason = "System prerequisites are documented in README (Installation > Prerequisites); Tauri and its OS packages do not apply"
+
+[[waive]]
+id = "INS-03"
+reason = "Rust installation is covered by prereq.sh and README; there is no Tauri CLI to install"
+
+[[waive]]
+id = "QUA-05"
+reason = "Tauri is not used; only the Rust version matters (rust-toolchain.toml)"
+
+[[waive]]
+id = "QUA-06"
+reason = "The version is declared in [workspace.package] of the root Cargo.toml (virtual workspace); zeaudit 0.2.0 only reads [package]"
+
+[[waive]]
+id = "PRT-04"
+reason = "Command-line tool without a GUI: the portfolio shows a real input page, its Markdown output, console output and a pipeline diagram instead of screenshots"
+
+[[waive]]
+id = "QUA-02"
+reason = "Virtual workspace: `cargo fmt --manifest-path Cargo.toml` finds no target; `cargo fmt --all --check` passes and clippy -D warnings reports nothing"

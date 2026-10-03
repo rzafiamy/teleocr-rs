@@ -179,6 +179,7 @@ pub fn to_html(otsl: &str) -> String {
 mod tests {
     use super::*;
 
+    // covers: REQ-TAB-001
     #[test]
     fn spans() {
         // Header spanning 2 columns, then a cell spanning 2 rows.
@@ -189,6 +190,7 @@ mod tests {
         );
     }
 
+    // covers: REQ-TAB-001
     #[test]
     fn empty_and_escape() {
         assert_eq!(

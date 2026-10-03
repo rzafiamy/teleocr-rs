@@ -531,6 +531,7 @@ impl Engine {
 mod tests {
     use super::*;
 
+    // covers: REQ-PIP-001
     #[test]
     fn layout_lines() {
         let b = parse_layout(
@@ -545,6 +546,7 @@ mod tests {
         assert!(p[0].polygon.is_some());
     }
 
+    // covers: REQ-PIP-003
     #[test]
     fn equations() {
         assert_eq!(post_equation("\\[ E=mc^2 \\]"), "$$E=mc^2$$");
@@ -556,6 +558,7 @@ mod tests {
         assert_eq!(post_equation("x tag{3}"), "$$x \\tag{3}$$");
     }
 
+    // covers: REQ-PIP-003
     #[test]
     fn inline_math() {
         assert_eq!(post_text("a$x$b"), "a $x$ b");
@@ -563,6 +566,7 @@ mod tests {
         assert_eq!(post_text("a $ x $ b"), "a $x$ b");
     }
 
+    // covers: REQ-PIP-003
     #[test]
     fn code() {
         assert_eq!(

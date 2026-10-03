@@ -218,6 +218,7 @@ pub fn preprocess(img: &RgbImage, cfg: &PreprocessConfig) -> Result<Patches> {
 mod tests {
     use super::*;
 
+    // covers: REQ-IMG-001
     #[test]
     fn smart_resize_matches_python() {
         // Python: smart_resize(1036, 1036) == (1036, 1036)

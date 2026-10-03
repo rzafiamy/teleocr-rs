@@ -1,4 +1,48 @@
-target/
-target-cuda/
-*.gguf
+# Rust build outputs
+/target/
+/target-*/
+**/target/
+/build/
+
+# Models and PDFium (downloaded)
 /models/
+*.gguf
+*.safetensors
+libpdfium.*
+pdfium.dll
+
+# Python helpers (scripts/)
+__pycache__/
+*.py[cod]
+.venv/
+
+# Secrets
+.env
+.env.local
+*.pem
+*.key
+*.p12
+
+# Release packages
+*.app
+*.deb
+*.AppImage
+*.dmg
+*.msi
+*.zip
+*.tar.gz
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Agent files (AGENTS.md is the shared one)
+CLAUDE.md
+.claude/
+
+# Logs / temporary files
+*.log
+tmp/
+.cache/

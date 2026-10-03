@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="320" viewBox="0 0 960 320" font-family="Helvetica, Arial, sans-serif" font-size="13">
+  <rect width="960" height="320" fill="#ffffff"/>
+  <defs>
+    <marker id="a" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <path d="M0,0 L10,4 L0,8 z" fill="#555"/>
+    </marker>
+  </defs>
+  <g stroke="#555" stroke-width="1.5" fill="none" marker-end="url(#a)">
+    <line x1="130" y1="80" x2="158" y2="80"/>
+    <line x1="308" y1="80" x2="336" y2="80"/>
+    <line x1="476" y1="80" x2="504" y2="80"/>
+    <line x1="654" y1="80" x2="682" y2="80"/>
+    <line x1="812" y1="80" x2="840" y2="80"/>
+    <line x1="270" y1="210" x2="240" y2="113"/>
+    <line x1="520" y1="210" x2="575" y2="113"/>
+  </g>
+  <g stroke="#333" stroke-width="1.2">
+    <rect x="20" y="50" width="110" height="60" rx="8" fill="#eef3fb"/>
+    <rect x="160" y="50" width="148" height="60" rx="8" fill="#fdf1e2"/>
+    <rect x="338" y="50" width="138" height="60" rx="8" fill="#eef3fb"/>
+    <rect x="506" y="50" width="148" height="60" rx="8" fill="#fdf1e2"/>
+    <rect x="684" y="50" width="128" height="60" rx="8" fill="#eef3fb"/>
+    <rect x="842" y="50" width="100" height="60" rx="8" fill="#eaf6ec"/>
+    <rect x="200" y="210" width="400" height="80" rx="8" fill="#f3eefb"/>
+  </g>
+  <g text-anchor="middle" fill="#111">
+    <text x="75" y="76">Page / PDF</text>
+    <text x="75" y="94" font-size="11" fill="#555">PDFium, ≤ 4.5 Mpx</text>
+    <text x="234" y="76">Layout pass</text>
+    <text x="234" y="94" font-size="11" fill="#555">page at 1036², batched</text>
+    <text x="407" y="76">Blocks</text>
+    <text x="407" y="94" font-size="11" fill="#555">type, bbox, order → crops</text>
+    <text x="580" y="76">Recognition</text>
+    <text x="580" y="94" font-size="11" fill="#555">per-type prompt, KV budget</text>
+    <text x="748" y="76">Post-process</text>
+    <text x="748" y="94" font-size="11" fill="#555">OTSL→HTML, LaTeX, code</text>
+    <text x="892" y="76">Markdown</text>
+    <text x="892" y="94" font-size="11" fill="#555">or JSON</text>
+    <text x="400" y="236">TeleOCR engine (one GGUF, Candle: CUDA / Metal / CPU)</text>
+    <text x="400" y="257" font-size="11" fill="#555">Qwen2.5-VL vision tower: 14 px patches, window attention, 2×2 merger</text>
+    <text x="400" y="275" font-size="11" fill="#555">Qwen3-style decoder: 28 layers, QK-norm, M-RoPE, chunked prefill, batched decode</text>
+  </g>
+  <text x="20" y="28" font-size="15" font-weight="bold" fill="#111">teleocr-rs document pipeline</text>
+</svg>

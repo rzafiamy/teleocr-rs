@@ -113,6 +113,7 @@ pub fn render(bytes: &[u8], dpi: f32, pages: Option<&str>) -> Result<Vec<RgbImag
 mod tests {
     use super::parse_pages;
 
+    // covers: REQ-PDF-001
     #[test]
     fn page_ranges() {
         assert_eq!(parse_pages("1-3,5", 5).unwrap(), vec![0, 1, 2, 4]);

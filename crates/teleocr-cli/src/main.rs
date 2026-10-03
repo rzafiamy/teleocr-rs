@@ -26,22 +26,22 @@ struct ModelArgs {
     #[arg(short, long, env = "TELEOCR_MODEL")]
     model: PathBuf,
     /// Run on the CPU even when a GPU is available.
-    #[arg(long)]
+    #[arg(long, env = "TELEOCR_CPU")]
     cpu: bool,
     /// CPU threads (default: all cores).
-    #[arg(long)]
+    #[arg(long, env = "TELEOCR_THREADS")]
     threads: Option<usize>,
     /// Upper bound on the pixels an image is resized to before the vision
     /// tower (default 12845056 = the model's); lower = faster, fewer tokens.
-    #[arg(long)]
+    #[arg(long, env = "TELEOCR_MAX_PIXELS")]
     max_pixels: Option<usize>,
     /// Document parsing: pages above this many pixels are downscaled before
     /// their blocks are cropped (default 4500000, ~A4 at 215 DPI).
-    #[arg(long)]
+    #[arg(long, env = "TELEOCR_MAX_PAGE_PIXELS")]
     max_page_pixels: Option<u64>,
     /// KV cache positions one decoding batch may use (rows x prompt
     /// length; default 16384 = 3.7 GB). Bounds GPU memory on large crops.
-    #[arg(long)]
+    #[arg(long, env = "TELEOCR_KV_BUDGET")]
     kv_budget: Option<usize>,
 }
 
@@ -88,15 +88,15 @@ enum Cmd {
     Serve {
         #[command(flatten)]
         model: ModelArgs,
-        #[arg(long, default_value = "127.0.0.1")]
+        #[arg(long, env = "TELEOCR_HOST", default_value = "127.0.0.1")]
         host: String,
-        #[arg(long, default_value_t = 8090)]
+        #[arg(long, env = "TELEOCR_PORT", default_value_t = 8090)]
         port: u16,
         /// Model id reported by /v1/models.
-        #[arg(long, default_value = "teleocr")]
+        #[arg(long, env = "TELEOCR_MODEL_ID", default_value = "teleocr")]
         model_id: String,
         /// Sequences decoded together when parsing (1 = one at a time).
-        #[arg(long, default_value_t = 8)]
+        #[arg(long, env = "TELEOCR_BATCH", default_value_t = 8)]
         batch: usize,
     },
     /// Run one task on one image.

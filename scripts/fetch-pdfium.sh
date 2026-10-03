@@ -10,6 +10,7 @@ case "$(uname -s)-$(uname -m)" in
   Linux-aarch64) PKG=pdfium-linux-arm64; LIB=lib/libpdfium.so ;;
   Darwin-arm64)  PKG=pdfium-mac-arm64; LIB=lib/libpdfium.dylib ;;
   Darwin-x86_64) PKG=pdfium-mac-x64; LIB=lib/libpdfium.dylib ;;
+  MINGW*-x86_64|MSYS*-x86_64|CYGWIN*-x86_64) PKG=pdfium-win-x64; LIB=bin/pdfium.dll ;;
   *) echo "unsupported platform $(uname -s)-$(uname -m)" >&2; exit 1 ;;
 esac
 URL="https://github.com/bblanchon/pdfium-binaries/releases/download/chromium%2F${VERSION}/${PKG}.tgz"

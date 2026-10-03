@@ -1,0 +1,62 @@
+name: Release
+
+# Builds the `teleocr` binary for each platform, with the PDFium library
+# next to it, and attaches it to the GitHub release of the pushed tag.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-x86_64-cpu
+            os: ubuntu-latest
+            rustflags: "-C target-cpu=x86-64-v3"
+            features: ""
+            exe: teleocr
+          - name: linux-aarch64-cpu
+            os: ubuntu-24.04-arm
+            rustflags: ""
+            features: ""
+            exe: teleocr
+          - name: macos-aarch64-metal
+            os: macos-latest
+            rustflags: "-C target-cpu=apple-m1"
+            features: "--features metal"
+            exe: teleocr
+          - name: windows-x86_64-cpu
+            os: windows-latest
+            rustflags: "-C target-cpu=x86-64-v3"
+            features: ""
+            exe: teleocr.exe
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.97.1
+      - name: Build
+        shell: bash
+        env:
+          # Portable CPU baseline
+          RUSTFLAGS: ${{ matrix.rustflags }}
+        run: cargo build --release --locked -p teleocr-cli ${{ matrix.features }}
+      - name: Package
+        shell: bash
+        run: |
+          mkdir dist
+          cp target/release/${{ matrix.exe }} dist/
+          scripts/fetch-pdfium.sh dist
+          cp README.md LICENSE CREDITS.md teleocr.example.env dist/
+          tar -czf teleocr-${{ github.ref_name }}-${{ matrix.name }}.tar.gz -C dist .
+      - uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: teleocr-*.tar.gz
+          generate_release_notes: true
